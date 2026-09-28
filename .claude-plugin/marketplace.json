@@ -1,0 +1,15 @@
+{
+  "name": "kolapsis",
+  "owner": {
+    "name": "kOlapsis",
+    "url": "https://kolapsis.com"
+  },
+  "description": "Plugins Claude Code de kOlapsis",
+  "plugins": [
+    {
+      "name": "speckit-guard",
+      "source": "./plugins/speckit-guard",
+      "description": "Tests d'acceptation écrits avant l'implémentation, verrouillés, puis vérification de la spec en contexte vierge."
+    }
+  ]
+}

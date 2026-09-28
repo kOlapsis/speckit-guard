@@ -1,0 +1,18 @@
+{
+  "description": "speckit-guard : verrouille les tests d'acceptation pendant l'implémentation",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/lock-tests.sh"],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

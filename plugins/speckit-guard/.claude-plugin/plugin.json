@@ -1,0 +1,10 @@
+{
+  "name": "speckit-guard",
+  "version": "0.1.0",
+  "description": "Tests d'acceptation écrits avant l'implémentation par un sous-agent isolé, verrouillés pendant l'implémentation, puis vérification de la spec en contexte vierge. Complément de SpecKit.",
+  "author": {
+    "name": "Benjamin",
+    "url": "https://kolapsis.com"
+  },
+  "keywords": ["speckit", "tdd", "tests", "review", "harness"]
+}
