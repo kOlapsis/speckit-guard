@@ -6,5 +6,20 @@
     "name": "Benjamin",
     "url": "https://kolapsis.com"
   },
-  "keywords": ["speckit", "tdd", "tests", "review", "harness"]
+  "homepage": "https://github.com/kOlapsis/speckit-guard",
+  "repository": "https://github.com/kOlapsis/speckit-guard",
+  "license": "Apache-2.0",
+  "keywords": [
+    "speckit",
+    "spec-kit",
+    "spec-driven-development",
+    "acceptance-tests",
+    "tdd",
+    "tests",
+    "test-lock",
+    "code-review",
+    "mutation-testing",
+    "hooks",
+    "harness"
+  ]
 }
