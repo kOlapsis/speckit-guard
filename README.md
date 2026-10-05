@@ -26,7 +26,7 @@ Le repo est aussi un marketplace de plugins. Une fois poussé sur un dépôt git
 
 N'importe quelle URL git fonctionne à la place de `<owner>/<repo>`, et un chemin local aussi pour tester avant publication.
 
-Prérequis : `jq` et `git`. Sans `jq`, le verrou reste fermé par sécurité.
+Prérequis : `jq` et `git`. Sans `jq`, le verrou reste fermé par sécurité. Une référence absente de l'historique git (clone superficiel) fait retomber le verrou sur les motifs de chemins.
 
 ## Activation
 
@@ -36,13 +36,15 @@ Pour le cantonner à certains projets, active-le au niveau projet plutôt qu'uti
 
 ## Règles du verrou
 
-| Qui | Tests | Code de prod | `specs/` | Réglages du verrou |
-|---|---|---|---|---|
-| Agent principal | bloqué | autorisé | autorisé | bloqué |
-| `test-writer` | autorisé | bloqué | autorisé | bloqué |
-| `spec-reviewer` | bloqué | bloqué | bloqué | bloqué |
+| Qui | Tests verrouillés | Autres tests | Code de prod | `specs/` | Réglages du verrou |
+|---|---|---|---|---|---|
+| Agent principal | bloqué | autorisé | autorisé | autorisé, sauf `acceptance-tests.md` | bloqué |
+| `test-writer` | autorisé | autorisé | bloqué | autorisé | bloqué |
+| `spec-reviewer` | bloqué | bloqué | bloqué | bloqué | bloqué |
 
-Chemins de test par défaut : `*_test.go`, `*.spec.*` / `*.test.*` (ts, tsx, js, mjs, vue), `__tests__/`, `e2e/`, `testdata/`. Pour les changer, créer `.specify/speckit-guard.env` :
+**Quels tests sont verrouillés.** Dès que la feature courante (branche `NNN-nom`, sinon `.specify/feature.json`) a une ligne `Référence : <SHA>` dans son `acceptance-tests.md`, le verrou porte sur les fichiers ajoutés par les commits de référence de toutes les features, et sur les `acceptance-tests.md` eux-mêmes. Les tests unitaires que l'implémentation écrit restent libres.
+
+Tant que la feature courante n'a pas de référence (pendant `/speckit-tests`), ou si une référence est introuvable dans l'historique, le verrou retombe sur des motifs de chemins. Par défaut : `*_test.go`, `*.spec.*` / `*.test.*` (ts, tsx, js, mjs, vue), `__tests__/`, `e2e/`, `testdata/`. Pour les changer, créer `.specify/speckit-guard.env` :
 
 ```
 TEST_RE='(^|/)tests/|_test\.go$'
