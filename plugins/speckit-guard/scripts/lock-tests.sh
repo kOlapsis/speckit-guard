@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
-# speckit-guard : hook PreToolUse de verrouillage des tests.
+# speckit-guard: PreToolUse hook that locks the acceptance tests.
 #
-# Actif uniquement dans les projets SpecKit (dossier .specify/ présent).
+# Active only in SpecKit projects (a .specify/ directory exists).
 #
-# Fichiers verrouillés :
-# - Mode « référence » : les fichiers ajoutés par les commits « Référence : <SHA> » des
-#   acceptance-tests.md de toutes les features, et ces acceptance-tests.md eux-mêmes. Les autres
-#   tests (tests unitaires écrits pendant l'implémentation) restent libres.
-# - Mode « motifs » (TEST_RE) tant que la feature courante (branche ou .specify/feature.json)
-#   n'a pas encore de référence, ou si une référence est illisible.
+# Locked files:
+# - "reference" mode: the files added by the "Reference: <SHA>" commits of every feature's
+#   acceptance-tests.md, and those acceptance-tests.md files themselves. Other tests
+#   (unit tests written during implementation) stay editable.
+# - "patterns" mode (TEST_RE) while the current feature (branch or .specify/feature.json)
+#   has no reference yet, or if a reference cannot be read.
 #
-# Règles :
-# - Seul le sous-agent "test-writer" peut créer ou modifier des fichiers verrouillés,
-#   et il ne peut écrire QUE des tests ou des docs de feature (specs/).
-# - Le sous-agent "spec-reviewer" est en lecture seule.
-# - Personne ne peut toucher aux réglages qui désactiveraient le verrou
-#   (.claude/settings*.json, cache des plugins, .specify/speckit-guard.env).
+# Rules:
+# - Only the "test-writer" subagent may create or modify locked files,
+#   and it may write ONLY tests or feature docs (specs/).
+# - The "spec-reviewer" subagent is read-only.
+# - Nobody may touch the settings that would disable the lock
+#   (.claude/settings*.json, plugin cache, .specify/speckit-guard.env).
 #
-# Échappatoire humaine : lancer la session avec TESTS_UNLOCKED=1 claude
+# Human escape hatch: start the session with TESTS_UNLOCKED=1 claude
 #
-# Personnalisation des chemins de test du mode « motifs » : .specify/speckit-guard.env
-#   TEST_RE='...'   (expression régulière étendue, chemin relatif au projet)
+# Custom test paths for "patterns" mode: .specify/speckit-guard.env
+#   TEST_RE='...'   (extended regular expression, path relative to the project)
 #
-# Dépendances : jq et git. Sans jq, le verrou reste fermé.
+# Dependencies: jq and git. Without jq, the lock stays closed.
 
 set -uo pipefail
 
@@ -35,7 +35,7 @@ block() {
 
 input=$(cat)
 
-command -v jq >/dev/null 2>&1 || block "jq introuvable, verrou fermé par sécurité. Installe jq."
+command -v jq >/dev/null 2>&1 || block "jq not found, the lock stays closed for safety. Install jq."
 
 tool=$(jq -r '.tool_name // ""' <<<"$input")
 agent=$(jq -r '.agent_type // ""' <<<"$input")
@@ -68,7 +68,7 @@ rel() {
 }
 
 ref_of() {
-  sed -n 's/^Référence : *\([0-9a-fA-F]\{7,40\}\).*/\1/p' "$1" 2>/dev/null | head -n1
+  sed -nE 's/^(Reference|Référence) *: *([0-9a-fA-F]{7,40}).*/\2/p' "$1" 2>/dev/null | head -n1
 }
 
 current_feature_dir() {
@@ -137,26 +137,26 @@ case "$tool" in
     path=$(rel "$raw")
 
     if [[ "$raw" =~ $PROTECTED_RE || "$path" =~ $PROTECTED_RE ]]; then
-      block "$path protège le verrou des tests, modification interdite depuis Claude Code."
+      block "$path protects the test lock and cannot be modified from Claude Code."
     fi
 
     case "$agent" in
       spec-reviewer)
-        block "le spec-reviewer est en lecture seule, il rend un rapport et ne modifie rien."
+        block "the spec-reviewer is read-only: it returns a report and modifies nothing."
         ;;
       test-writer)
         if [[ "$path" =~ $TEST_RE || "$path" =~ $SPECS_RE ]] || is_locked "$path"; then
           exit 0
         fi
-        block "le test-writer n'écrit que des tests ou des docs de feature, pas de code de production ni de stub ($path)."
+        block "the test-writer only writes tests or feature docs, no production code or stub ($path)."
         ;;
     esac
 
     if [[ "$mode" == reference && "$path" =~ $ACCEPTANCE_DOC_RE ]]; then
-      block "$path porte la référence des tests verrouillés, modification interdite pendant l'implémentation."
+      block "$path holds the reference of the locked tests and cannot be modified during implementation."
     fi
     if is_locked "$path"; then
-      block "$path est un test d'acceptation verrouillé. Fais évoluer le code, pas les tests. Si un test te semble faux ou contradictoire avec la spec, arrête-toi et signale-le à l'humain."
+      block "$path is a locked acceptance test. Change the code, not the tests. If a test looks wrong or contradicts the spec, stop and tell the human."
     fi
     exit 0
     ;;
@@ -168,13 +168,13 @@ case "$tool" in
     [[ "$clean" =~ $WRITE_OPS_RE ]] || exit 0
 
     if grep -Eq "$PROTECTED_BASH_RE" <<<"$clean"; then
-      block "commande qui touche aux réglages du verrou des tests, interdite."
+      block "this command touches the test lock settings and is not allowed."
     fi
     if [[ "$agent" == "spec-reviewer" ]]; then
-      block "le spec-reviewer est en lecture seule (git diff, git log, lancement des tests uniquement)."
+      block "the spec-reviewer is read-only (git diff, git log and running tests only)."
     fi
     if [[ "$agent" != "test-writer" ]] && bash_touches_locked "$clean"; then
-      block "commande qui modifie des tests d'acceptation verrouillés, interdite."
+      block "this command modifies locked acceptance tests and is not allowed."
     fi
     exit 0
     ;;
