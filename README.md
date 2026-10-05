@@ -17,14 +17,14 @@ Plugin Claude Code qui ajoute à SpecKit ce qui lui manque pour qu'un agent ne s
 
 ## Installation
 
-Le repo est aussi un marketplace de plugins. Une fois poussé sur un dépôt git :
+Le repo est aussi un marketplace de plugins, nommé `kolapsis` :
 
 ```
-/plugin marketplace add <owner>/<repo>
+/plugin marketplace add https://github.com/kOlapsis/speckit-guard.git
 /plugin install speckit-guard@kolapsis
 ```
 
-N'importe quelle URL git fonctionne à la place de `<owner>/<repo>`, et un chemin local aussi pour tester avant publication.
+Pour tester avant publication, un chemin local vers un clone du repo fonctionne aussi à la place de l'URL.
 
 Prérequis : `jq` et `git`. Sans `jq`, le verrou reste fermé par sécurité. Une référence absente de l'historique git (clone superficiel) fait retomber le verrou sur les motifs de chemins.
 
