@@ -34,7 +34,7 @@ speckit-guard: tests/e2e/login.spec.ts is a locked acceptance test. Change the c
 not the tests. If a test looks wrong or contradicts the spec, stop and tell the human.
 ```
 
-Le message est en anglais parce qu'il s'adresse à l'agent, qui le reformule ensuite dans la langue de la conversation.
+Ce message s'adresse à l'agent, qui le reformule ensuite pour l'utilisateur.
 
 ## Installation
 
@@ -54,10 +54,6 @@ Pour tester une modification avant publication, un chemin local vers un clone du
 - `git` et `jq`. Sans `jq`, le verrou reste fermé par sécurité. Si le commit de référence est absent de l'historique (clone superficiel), le verrou retombe sur les motifs de chemins.
 
 Pour cantonner le plugin à certains projets, active-le au niveau projet plutôt qu'utilisateur (`enabledPlugins` dans `.claude/settings.json` du projet).
-
-### Langue
-
-Les prompts sont écrits en anglais. Les commandes demandent à Claude de répondre dans la langue de la conversation, et d'écrire les fichiers qu'elles produisent (`acceptance-tests.md`, `verification.md`, tâches de remédiation) dans la langue de `spec.md`. Avec une spec en français, ces fichiers sont donc en français. Les mots-clés de verdict restent en anglais (PASS, FAIL, OK, PARTIAL, MISSING).
 
 ### Langages de programmation
 

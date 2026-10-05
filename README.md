@@ -53,10 +53,6 @@ To try a local change before publishing, use the path to a clone instead of the 
 
 To limit the plugin to some projects, enable it at project level rather than user level (`enabledPlugins` in the project's `.claude/settings.json`).
 
-### Language
-
-The prompts are written in English. The commands tell Claude to answer in the language you use in the conversation, and to write the files they generate (`acceptance-tests.md`, `verification.md`, remediation tasks) in the language of your `spec.md`. Verdict keywords stay in English (PASS, FAIL, OK, PARTIAL, MISSING). Hook messages are in English: they are addressed to the agent, which relays them in your language.
-
 ### Stacks
 
 The commands let the agent detect and run your project's test commands, so the workflow is not tied to a language. Two parts are more specific:
