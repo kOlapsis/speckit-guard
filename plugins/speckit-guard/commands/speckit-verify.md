@@ -1,42 +1,44 @@
 ---
-description: Vérifie l'implémentation d'une feature contre sa spec avec un relecteur en contexte vierge, après contrôles mécaniques (intégrité des tests, suite, mutation testing).
-argument-hint: "[dossier de feature, ex. specs/003-user-auth]"
+description: Checks a feature's implementation against its spec with a fresh-context reviewer, after mechanical checks (test integrity, full suite, mutation testing).
+argument-hint: "[feature directory, e.g. specs/003-user-auth]"
 ---
 
-Objectif : juger si l'implémentation fait ce que la spec demande, pas seulement si les tests passent. Cette commande ne corrige rien, elle produit un verdict et une liste d'écarts.
+Goal: judge whether the implementation does what the spec asks, not just whether the tests pass. This command fixes nothing; it produces a verdict and a list of gaps.
 
-Argument éventuel : $ARGUMENTS
+Optional argument: $ARGUMENTS
 
-## 1. Résoudre la feature et la référence
+Language: talk to the user in the language they use in this conversation. Files you write in `specs/` follow the language of `spec.md`.
 
-Résous le dossier de feature comme `/speckit-tests` (argument, puis `specs/<branche courante>/`, puis le `spec.md` le plus récent, sinon demande).
+## 1. Resolve the feature and the reference
 
-Lis le SHA de référence dans la ligne `Référence :` de `acceptance-tests.md`. S'il n'existe pas, arrête-toi : il faut d'abord lancer `/speckit-tests`.
+Resolve the feature directory like `/speckit-tests` (argument, then `specs/<current branch>/`, then the most recent `spec.md`, otherwise ask).
 
-## 2. Contrôles mécaniques (avant tout jugement)
+Read the reference SHA from the `Reference:` line of `acceptance-tests.md` (older features may use `Référence :`). If there is none, stop: `/speckit-tests` must run first.
 
-1. **Intégrité des tests** : liste les fichiers de test ajoutés dans le commit de référence et vérifie avec `git diff <SHA>..HEAD` qu'aucun n'a changé. Si l'un a changé, le verdict est FAIL, quel que soit le reste.
-2. **Suite complète** : lance toutes les commandes de test du projet. Relève le résultat.
-3. **Mutation testing, si l'outil est déjà installé** (ne l'installe pas toi-même) :
-   - Go : `gremlins` sur les paquets modifiés depuis la référence.
-   - Front : Stryker, seulement s'il est configuré dans le projet.
-   Relève le score et les mutants survivants dans le code modifié. Si aucun outil n'est disponible, note « mutation testing non exécuté ».
+## 2. Mechanical checks (before any judgement)
 
-## 3. Déléguer au spec-reviewer
+1. **Test integrity**: list the test files added in the reference commit and check with `git diff <SHA>..HEAD` that none has changed. If one has changed, the verdict is FAIL, whatever the rest.
+2. **Full suite**: run all of the project's test commands. Record the result.
+3. **Mutation testing, if the tool is already installed** (do not install it yourself):
+   - Go: `gremlins` on the packages changed since the reference.
+   - Frontend: Stryker, only if it is configured in the project.
+   Record the score and the surviving mutants in the changed code. If no tool is available, note "mutation testing not run".
 
-Lance le sous-agent `spec-reviewer` avec **uniquement** :
-- le chemin du dossier de feature,
-- le SHA de référence,
-- les résultats bruts des contrôles mécaniques.
+## 3. Delegate to the spec-reviewer
 
-Ne lui transmets aucun résumé de l'implémentation ni ton avis : il doit juger à froid à partir de la spec et du diff.
+Launch the `spec-reviewer` subagent with **only**:
+- the path of the feature directory,
+- the reference SHA,
+- the raw results of the mechanical checks.
 
-## 4. Consigner
+Pass on no summary of the implementation and no opinion of your own: it must judge cold, from the spec and the diff.
 
-Écris `verification.md` dans le dossier de feature : date, SHA de `HEAD`, résultats mécaniques, puis le rapport du reviewer tel quel.
+## 4. Record
 
-Si le verdict est FAIL ou s'il y a des critères PARTIEL ou ABSENT, ajoute à la fin de `tasks.md` une section « Remédiation (verify) » avec une tâche par écart.
+Write `verification.md` in the feature directory: date, SHA of `HEAD`, mechanical results, then the reviewer's report as is.
 
-## 5. Rendre la main
+If the verdict is FAIL or if some criteria are PARTIAL or MISSING, append to `tasks.md` a "Remediation (verify)" section, in the language of `tasks.md`, with one task per gap.
 
-Donne le verdict global en une ligne, les écarts principaux, et ce que l'humain doit tester à la main. Ne corrige rien dans cette commande.
+## 5. Hand back
+
+Give the overall verdict in one line, the main gaps, and what the human must test by hand. Fix nothing in this command.

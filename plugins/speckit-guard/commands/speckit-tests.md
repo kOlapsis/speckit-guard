@@ -1,53 +1,55 @@
 ---
-description: Fait écrire les tests d'acceptation de la feature par un sous-agent isolé, avant l'implémentation, prouve qu'ils échouent et les fige dans un commit de référence.
-argument-hint: "[dossier de feature, ex. specs/003-user-auth]"
+description: Has an isolated subagent write the feature's acceptance tests before implementation, proves they fail, and freezes them in a reference commit.
+argument-hint: "[feature directory, e.g. specs/003-user-auth]"
 ---
 
-Objectif : produire les tests d'acceptation de la feature **avant** `/speckit-implement`, écrits par un sous-agent qui ne voit que la spec. Ces tests deviennent la cible verrouillée de l'implémentation.
+Goal: produce the feature's acceptance tests **before** `/speckit-implement`, written by a subagent that only sees the spec. These tests become the locked target of the implementation.
 
-Argument éventuel : $ARGUMENTS
+Optional argument: $ARGUMENTS
 
-## 1. Résoudre la feature
+Language: talk to the user in the language they use in this conversation. Files you write in `specs/` follow the language of `spec.md`.
 
-Dans cet ordre :
-1. Le dossier passé en argument.
-2. `specs/<branche git courante>/`.
-3. Le dossier `specs/*/` dont le `spec.md` est le plus récent.
+## 1. Resolve the feature
 
-Si rien ne correspond, ou si le choix est ambigu, demande à l'humain. Vérifie que `spec.md` existe. Si `acceptance-tests.md` existe déjà, demande s'il faut compléter ou repartir de zéro.
+In this order:
+1. The directory passed as argument.
+2. `specs/<current git branch>/`.
+3. The `specs/*/` directory whose `spec.md` is the most recent.
 
-## 2. État de départ
+If nothing matches, or if the choice is ambiguous, ask the human. Check that `spec.md` exists. If `acceptance-tests.md` already exists, ask whether to complete it or start over.
 
-- L'arbre git doit être propre, sinon demande à l'humain de commiter ou ranger avant.
-- Détecte les commandes de test du projet (par exemple `go test ./...`, et le script de test du front s'il existe) et lance la suite. Si elle est déjà rouge, arrête-toi et signale-le : on ne peut pas prouver le rouge des nouveaux tests sur une base cassée.
+## 2. Starting state
 
-## 3. Déléguer au test-writer
+- The git tree must be clean; otherwise ask the human to commit or stash first.
+- Detect the project's test commands (for example `go test ./...`, and the frontend test script if there is one) and run the suite. If it is already red, stop and report it: the new tests cannot be proven red on a broken base.
 
-Lance le sous-agent `test-writer` avec **uniquement** :
-- le chemin du dossier de feature,
-- les chemins de `spec.md`, `plan.md` et `contracts/` s'ils existent,
-- les commandes de test détectées.
+## 3. Delegate to the test-writer
 
-Ne lui transmets ni ton interprétation de la spec, ni d'idée d'implémentation. Son isolement est tout l'intérêt de l'étape.
+Launch the `test-writer` subagent with **only**:
+- the path of the feature directory,
+- the paths of `spec.md`, `plan.md` and `contracts/` if they exist,
+- the detected test commands.
 
-Tu ne peux pas écrire les tests toi-même : le verrou du projet t'en empêche.
+Pass on neither your interpretation of the spec nor any implementation idea. Its isolation is the whole point of this step.
 
-## 4. Contrôler son travail
+You cannot write the tests yourself: the project's lock prevents it.
 
-- `acceptance-tests.md` existe et chaque critère de la spec y apparaît, en test ou en « Non couverts ».
-- Relance toi-même chaque test listé : tous doivent échouer. Un test qui passe est signalé à l'humain.
-- Recherche les tests désactivés (skip, todo, only) dans les fichiers ajoutés.
-- Seuls des fichiers de test et des fichiers de `specs/` ont changé (`git status`).
+## 4. Check its work
 
-## 5. Figer la référence
+- `acceptance-tests.md` exists and every criterion of the spec appears in it, either as a test or in the "Not covered" section.
+- Run every listed test yourself: all of them must fail. Report any passing test to the human.
+- Look for disabled tests (skip, todo, only) in the added files.
+- Only test files and files under `specs/` have changed (`git status`).
 
-Commite les tests et `acceptance-tests.md` seuls, avec un message de la forme `test(<feature>): tests d'acceptation (rouges)`. Ajoute ensuite en tête de `acceptance-tests.md` une ligne `Référence : <SHA court>` et commite-la. C'est ce SHA que `/speckit-verify` utilisera.
+## 5. Freeze the reference
 
-## 6. Rendre la main
+Commit the tests and `acceptance-tests.md` alone, with a message of the form `test(<feature>): acceptance tests (red)`. Then add a line `Reference: <short SHA>` at the top of `acceptance-tests.md` and commit it. Write this line exactly in that form, in English, whatever the language of the file: the lock and `/speckit-verify` read it.
 
-Résumé court :
-- critères couverts / total,
-- non couverts et ambiguïtés à trancher (en priorité, car une ambiguïté non tranchée produira un code conforme aux tests mais à côté de l'intention),
-- les deux ou trois tests à relire en premier.
+## 6. Hand back
 
-Rappelle que les tests sont maintenant verrouillés et que la suite est `/speckit-implement`, puis `/speckit-verify`.
+Short summary:
+- criteria covered / total,
+- uncovered criteria and ambiguities to resolve (these first, because an unresolved ambiguity produces code that matches the tests but misses the intent),
+- the two or three tests to review first.
+
+Remind the human that the tests are now locked and that the next steps are `/speckit-implement`, then `/speckit-verify`.

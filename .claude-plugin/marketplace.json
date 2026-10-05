@@ -4,12 +4,12 @@
     "name": "kOlapsis",
     "url": "https://kolapsis.com"
   },
-  "description": "Plugins Claude Code de kOlapsis",
+  "description": "Claude Code plugins by kOlapsis",
   "plugins": [
     {
       "name": "speckit-guard",
       "source": "./plugins/speckit-guard",
-      "description": "Tests d'acceptation écrits avant l'implémentation, verrouillés, puis vérification de la spec en contexte vierge."
+      "description": "Acceptance tests written before implementation, locked, then a fresh-context review against the spec."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "speckit-guard",
-  "version": "0.2.0",
-  "description": "Tests d'acceptation écrits avant l'implémentation par un sous-agent isolé, verrouillés pendant l'implémentation, puis vérification de la spec en contexte vierge. Complément de SpecKit.",
+  "version": "0.3.0",
+  "description": "Companion to GitHub Spec Kit: acceptance tests written before implementation by an isolated subagent, locked during implementation, then a fresh-context review against the spec.",
   "author": {
     "name": "Benjamin",
     "url": "https://kolapsis.com"
