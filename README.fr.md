@@ -16,7 +16,7 @@ Avec Spec Kit, l'agent qui implémente une feature écrit aussi ses tests et dé
 
 1. **`/speckit-tests`** : un sous-agent isolé (`test-writer`) lit seulement la spec, écrit les tests d'acceptation avant l'implémentation et prouve qu'ils échouent. Les tests sont commités, et ce commit devient la référence.
 2. **Un verrou sur les tests** : pendant `/speckit-implement`, un hook `PreToolUse` empêche l'agent de modifier ces tests. Il doit faire évoluer le code, pas la cible.
-3. **`/speckit-verify`** : d'abord des contrôles mécaniques (`git diff` des tests par rapport au commit de référence, suite complète, mutation testing si un outil est installé), puis un sous-agent `spec-reviewer`, qui n'a jamais vu le raisonnement de l'implémenteur, juge chaque critère d'acceptation OK, PARTIEL ou ABSENT. Les écarts sont ajoutés à `tasks.md` comme tâches de remédiation.
+3. **`/speckit-verify`** : d'abord des contrôles mécaniques (`git diff` des tests par rapport au commit de référence, suite complète, mutation testing si un outil est installé), puis un sous-agent `spec-reviewer`, qui n'a jamais vu le raisonnement de l'implémenteur, juge chaque critère d'acceptation OK, PARTIAL ou MISSING. Les écarts sont ajoutés à `tasks.md` comme tâches de remédiation.
 
 ## Flux
 
@@ -30,10 +30,11 @@ Avec Spec Kit, l'agent qui implémente une feature écrit aussi ses tests et dé
 Quand l'agent qui implémente essaie de modifier un test verrouillé, le hook bloque l'appel d'outil et lui explique pourquoi :
 
 ```
-speckit-guard: tests/e2e/login.spec.ts est un test d'acceptation verrouillé.
-Fais évoluer le code, pas les tests. Si un test te semble faux ou contradictoire
-avec la spec, arrête-toi et signale-le à l'humain.
+speckit-guard: tests/e2e/login.spec.ts is a locked acceptance test. Change the code,
+not the tests. If a test looks wrong or contradicts the spec, stop and tell the human.
 ```
+
+Le message est en anglais parce qu'il s'adresse à l'agent, qui le reformule ensuite dans la langue de la conversation.
 
 ## Installation
 
@@ -54,7 +55,11 @@ Pour tester une modification avant publication, un chemin local vers un clone du
 
 Pour cantonner le plugin à certains projets, active-le au niveau projet plutôt qu'utilisateur (`enabledPlugins` dans `.claude/settings.json` du projet).
 
-### Langages
+### Langue
+
+Les prompts sont écrits en anglais. Les commandes demandent à Claude de répondre dans la langue de la conversation, et d'écrire les fichiers qu'elles produisent (`acceptance-tests.md`, `verification.md`, tâches de remédiation) dans la langue de `spec.md`. Avec une spec en français, ces fichiers sont donc en français. Les mots-clés de verdict restent en anglais (PASS, FAIL, OK, PARTIAL, MISSING).
+
+### Langages de programmation
 
 Les commandes laissent l'agent détecter et lancer les commandes de test du projet, donc le flux ne dépend pas d'un langage. Deux points sont plus spécifiques :
 
@@ -69,7 +74,7 @@ Les commandes laissent l'agent détecter et lancer les commandes de test du proj
 | `test-writer` | autorisé | autorisé | bloqué | autorisé | bloqué |
 | `spec-reviewer` | bloqué | bloqué | bloqué | bloqué | bloqué |
 
-**Quels tests sont verrouillés.** Dès que la feature courante (branche `NNN-nom`, sinon `.specify/feature.json`) a une ligne `Référence : <SHA>` dans son `acceptance-tests.md`, le verrou porte sur les fichiers ajoutés par les commits de référence de toutes les features, et sur les `acceptance-tests.md` eux-mêmes. Les tests unitaires que l'implémentation écrit restent libres.
+**Quels tests sont verrouillés.** Dès que la feature courante (branche `NNN-nom`, sinon `.specify/feature.json`) a une ligne `Reference: <SHA>` dans son `acceptance-tests.md`, le verrou porte sur les fichiers ajoutés par les commits de référence de toutes les features, et sur les `acceptance-tests.md` eux-mêmes. L'ancienne forme `Référence : <SHA>` reste reconnue. Les tests unitaires que l'implémentation écrit restent libres.
 
 Tant que la feature courante n'a pas de référence (pendant `/speckit-tests`), ou si une référence est introuvable dans l'historique, le verrou retombe sur des motifs de chemins. Par défaut : `*_test.go`, `*.spec.*` / `*.test.*` (ts, tsx, js, mjs, vue), `__tests__/`, `e2e/`, `testdata/`. Pour les changer, créer `.specify/speckit-guard.env` :
 
@@ -85,7 +90,7 @@ Ce fichier est lui-même protégé contre les modifications de l'agent. Ce régl
 
 - Le filtrage des commandes Bash est heuristique. Un agent déterminé peut écrire un fichier par un chemin détourné (script inline, par exemple). Le hook arrête les cas courants, pas un adversaire.
 - **La vraie garantie est `/speckit-verify`** : il compare les tests au commit de référence avec `git diff`, indépendamment du hook. Le même contrôle peut tourner en CI.
-- Un test vert ne prouve pas l'intention. La qualité du résultat dépend d'abord de la précision des critères d'acceptation de la spec : traiter la section « Ambiguïtés » de `acceptance-tests.md` avant d'implémenter.
+- Un test vert ne prouve pas l'intention. La qualité du résultat dépend d'abord de la précision des critères d'acceptation de la spec : traiter la section des ambiguïtés de la spec dans `acceptance-tests.md` avant d'implémenter.
 
 ## Développement
 

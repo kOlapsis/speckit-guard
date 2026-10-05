@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Nature du dépôt
 
-Marketplace de plugins Claude Code (`.claude-plugin/marketplace.json`, nom `kolapsis`) qui contient un seul plugin, `plugins/speckit-guard`. Il n'y a ni build ni dépendances : le plugin est fait de Markdown (commandes, agents), d'un `hooks.json` et d'un script bash. Les prompts et les messages du hook sont en français. Le README existe en deux versions à garder synchronisées : `README.md` en anglais, `README.fr.md` en français.
+Marketplace de plugins Claude Code (`.claude-plugin/marketplace.json`, nom `kolapsis`) qui contient un seul plugin, `plugins/speckit-guard`. Il n'y a ni build ni dépendances : le plugin est fait de Markdown (commandes, agents), d'un `hooks.json` et d'un script bash. Les prompts, les messages du hook et les manifestes sont en anglais ; les prompts demandent à Claude de parler la langue de l'utilisateur et d'écrire les fichiers générés dans la langue de `spec.md`. Le README existe en deux versions à garder synchronisées : `README.md` en anglais, `README.fr.md` en français.
 
 ## Commandes
 
@@ -34,7 +34,7 @@ Couplages à garder en tête quand on modifie un morceau :
 
 - Les noms `test-writer` et `spec-reviewer` sont codés en dur dans le `case "$agent"` du hook. Le hook retire le préfixe de plugin (`speckit-guard:test-writer` → `test-writer`). Renommer un agent dans son frontmatter sans toucher le hook casse le verrou.
 - Les commandes transmettent volontairement le minimum aux sous-agents (chemins, SHA, résultats bruts) : l'isolement du contexte est le principe du plugin, ne pas y ajouter de résumé ou d'interprétation.
-- Le hook a deux modes. Mode « référence » : dès que la feature courante (branche, sinon `.specify/feature.json`) a une ligne `Référence : <SHA>`, seuls les fichiers ajoutés par les commits de référence de toutes les features (`git show --name-only --diff-filter=A`, hors `specs/`) et les `acceptance-tests.md` sont verrouillés. Mode « motifs » : avant toute référence, ou si un SHA est introuvable, retour aux motifs de chemins. Le format de la ligne `Référence :` est partagé avec `speckit-tests.md` et `speckit-verify.md`.
+- Le hook a deux modes. Mode « référence » : dès que la feature courante (branche, sinon `.specify/feature.json`) a une ligne `Reference: <SHA>` (ou l'ancienne forme `Référence :`, toujours lue), seuls les fichiers ajoutés par les commits de référence de toutes les features (`git show --name-only --diff-filter=A`, hors `specs/`) et les `acceptance-tests.md` sont verrouillés. Mode « motifs » : avant toute référence, ou si un SHA est introuvable, retour aux motifs de chemins. Le format de la ligne `Reference:` est partagé avec `speckit-tests.md` et `speckit-verify.md`.
 - En mode « motifs », deux jeux de motifs coexistent : `TEST_RE` (outils d'écriture, surchargeable via `.specify/speckit-guard.env`) et `TEST_BASH_RE` (commandes Bash, fixe). Un `TEST_RE` personnalisé ne s'applique donc pas au filtrage Bash. Les tests du hook créent un vrai dépôt git temporaire pour couvrir le mode « référence ».
 - Le filtrage Bash ne s'active que si la commande matche `WRITE_OPS_RE`, après neutralisation de `2>&1` et `>/dev/null`.
 - Les deux README décrivent les règles du verrou (tableau agent × type de fichier) et les chemins de test par défaut : les tenir à jour si le hook change, ainsi que `version` dans `plugin.json`.

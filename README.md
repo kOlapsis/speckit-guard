@@ -30,12 +30,9 @@ In spec-driven development with Spec Kit, the agent that implements a feature al
 When the implementing agent tries to edit a locked test, the hook blocks the tool call and tells it why:
 
 ```
-speckit-guard: tests/e2e/login.spec.ts est un test d'acceptation verrouillé.
-Fais évoluer le code, pas les tests. Si un test te semble faux ou contradictoire
-avec la spec, arrête-toi et signale-le à l'humain.
+speckit-guard: tests/e2e/login.spec.ts is a locked acceptance test. Change the code,
+not the tests. If a test looks wrong or contradicts the spec, stop and tell the human.
 ```
-
-(The message says: this is a locked acceptance test; change the code, not the tests; if a test looks wrong or contradicts the spec, stop and tell the human.)
 
 ## Installation
 
@@ -58,7 +55,7 @@ To limit the plugin to some projects, enable it at project level rather than use
 
 ### Language
 
-The commands, subagent prompts and hook messages are written in French, and so are the headings of the files they generate (`acceptance-tests.md`, `verification.md`). The README is the only part available in English for now.
+The prompts are written in English. The commands tell Claude to answer in the language you use in the conversation, and to write the files they generate (`acceptance-tests.md`, `verification.md`, remediation tasks) in the language of your `spec.md`. Verdict keywords stay in English (PASS, FAIL, OK, PARTIAL, MISSING). Hook messages are in English: they are addressed to the agent, which relays them in your language.
 
 ### Stacks
 
@@ -75,7 +72,7 @@ The commands let the agent detect and run your project's test commands, so the w
 | `test-writer` | allowed | allowed | blocked | allowed | blocked |
 | `spec-reviewer` | blocked | blocked | blocked | blocked | blocked |
 
-**Which tests are locked.** Once the current feature (branch `NNN-name`, otherwise `.specify/feature.json`) has a `Référence : <SHA>` line in its `acceptance-tests.md`, the lock covers the files added by the reference commits of every feature, plus the `acceptance-tests.md` files themselves. Unit tests written during implementation stay editable.
+**Which tests are locked.** Once the current feature (branch `NNN-name`, otherwise `.specify/feature.json`) has a `Reference: <SHA>` line in its `acceptance-tests.md`, the lock covers the files added by the reference commits of every feature, plus the `acceptance-tests.md` files themselves. The older French form `Référence : <SHA>` is still read. Unit tests written during implementation stay editable.
 
 While the current feature has no reference yet (during `/speckit-tests`), or if a reference cannot be found in the history, the lock falls back to path patterns. Defaults: `*_test.go`, `*.spec.*` / `*.test.*` (ts, tsx, js, mjs, vue), `__tests__/`, `e2e/`, `testdata/`. To change them, create `.specify/speckit-guard.env`:
 
@@ -91,7 +88,7 @@ That file is itself protected from the agent. This setting applies to file-writi
 
 - Bash command filtering is heuristic. A determined agent can write a file through an indirect route, such as an inline script. The hook stops the common cases, not an adversary.
 - **The real guarantee is `/speckit-verify`**: it compares the tests to the reference commit with `git diff`, independently of the hook. The same check can run in CI.
-- A green test does not prove intent. The result is only as good as the acceptance criteria in the spec: resolve the "Ambiguïtés" section of `acceptance-tests.md` before implementing.
+- A green test does not prove intent. The result is only as good as the acceptance criteria in the spec: resolve the "Spec ambiguities" section of `acceptance-tests.md` before implementing.
 
 ## Development
 
