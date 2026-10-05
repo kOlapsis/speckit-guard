@@ -1,69 +1,105 @@
 # speckit-guard
 
-Plugin Claude Code qui ajoute à SpecKit ce qui lui manque pour qu'un agent ne soit pas juge de son propre travail :
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-1. **`/speckit-tests`** : un sous-agent isolé écrit les tests d'acceptation à partir de la spec seule, avant l'implémentation, et prouve qu'ils échouent.
-2. **Verrou** : pendant `/speckit-implement`, un hook empêche l'agent de modifier ces tests. Il doit faire évoluer le code, pas la cible.
-3. **`/speckit-verify`** : contrôles mécaniques (intégrité des tests, suite complète, mutation testing si disponible), puis un relecteur en contexte vierge juge la conformité à la spec critère par critère.
+**Your coding agent should not be the one grading its own work.**
 
-## Flux
+speckit-guard is a [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin for [GitHub Spec Kit](https://github.com/github/spec-kit). It has acceptance tests written from the spec before any code exists, locks them while `/speckit-implement` runs, and then has a reviewer with a fresh context check the implementation against the spec, criterion by criterion.
+
+[Version française](README.fr.md)
+
+## The problem
+
+In spec-driven development with Spec Kit, the agent that implements a feature also writes its tests and decides when the feature is done. When a test fails, the shortest path to green is often to edit the test instead of the code. The default flow has no step that checks for this, so "all tests pass" says little about whether the spec is met.
+
+## What speckit-guard adds
+
+1. **`/speckit-tests`**: an isolated subagent (`test-writer`) reads only the spec, writes the acceptance tests before implementation, and proves they fail. The tests are committed, and that commit becomes the reference.
+2. **A lock on the tests**: during `/speckit-implement`, a `PreToolUse` hook prevents the agent from modifying those tests. It has to change the code, not the target.
+3. **`/speckit-verify`**: mechanical checks first (`git diff` of the tests against the reference commit, full test suite, mutation testing if a tool is installed), then a `spec-reviewer` subagent that never saw the implementation reasoning judges each acceptance criterion as OK, PARTIAL or MISSING. Gaps are appended to `tasks.md` as remediation tasks.
+
+## Workflow
 
 ```
-/speckit-specify → /speckit-plan → /speckit-tasks
-/speckit-tests      tests d'acceptation rouges, commit de référence
-/speckit-implement  inchangé, bute sur des tests qu'il ne contrôle pas
-/speckit-verify     verdict PASS / FAIL, écarts ajoutés à tasks.md
+/speckit-specify → /speckit-plan → /speckit-tasks    Spec Kit, unchanged
+/speckit-tests      red acceptance tests, reference commit
+/speckit-implement  Spec Kit, unchanged, runs into tests it cannot edit
+/speckit-verify     PASS / FAIL verdict, gaps added to tasks.md
 ```
+
+When the implementing agent tries to edit a locked test, the hook blocks the tool call and tells it why:
+
+```
+speckit-guard: tests/e2e/login.spec.ts est un test d'acceptation verrouillé.
+Fais évoluer le code, pas les tests. Si un test te semble faux ou contradictoire
+avec la spec, arrête-toi et signale-le à l'humain.
+```
+
+(The message says: this is a locked acceptance test; change the code, not the tests; if a test looks wrong or contradicts the spec, stop and tell the human.)
 
 ## Installation
 
-Le repo est aussi un marketplace de plugins, nommé `kolapsis` :
+The repository is a plugin marketplace named `kolapsis`. In Claude Code:
 
 ```
 /plugin marketplace add https://github.com/kOlapsis/speckit-guard.git
 /plugin install speckit-guard@kolapsis
 ```
 
-Pour tester avant publication, un chemin local vers un clone du repo fonctionne aussi à la place de l'URL.
+To try a local change before publishing, use the path to a clone instead of the URL.
 
-Prérequis : `jq` et `git`. Sans `jq`, le verrou reste fermé par sécurité. Une référence absente de l'historique git (clone superficiel) fait retomber le verrou sur les motifs de chemins.
+### Requirements
 
-## Activation
+- Claude Code.
+- A project initialized with Spec Kit (a `.specify/` directory). Elsewhere the plugin does nothing.
+- `git` and `jq`. Without `jq`, the lock stays closed as a safety measure. If the reference commit is missing from the history (shallow clone), the lock falls back to path patterns.
 
-Le verrou ne s'active que dans les projets SpecKit (dossier `.specify/` présent). Ailleurs, le plugin ne fait rien.
+To limit the plugin to some projects, enable it at project level rather than user level (`enabledPlugins` in the project's `.claude/settings.json`).
 
-Pour le cantonner à certains projets, active-le au niveau projet plutôt qu'utilisateur (`enabledPlugins` dans `.claude/settings.json` du projet).
+### Language
 
-## Règles du verrou
+The commands, subagent prompts and hook messages are written in French, and so are the headings of the files they generate (`acceptance-tests.md`, `verification.md`). The README is the only part available in English for now.
 
-| Qui | Tests verrouillés | Autres tests | Code de prod | `specs/` | Réglages du verrou |
+### Stacks
+
+The commands let the agent detect and run your project's test commands, so the workflow is not tied to a language. Two parts are more specific:
+
+- The default lock patterns target Go and JavaScript/TypeScript test files. They only apply before the reference commit exists, and can be changed (see below).
+- Mutation testing runs only if the tool is already installed: `gremlins` for Go, Stryker for the frontend if configured. The plugin never installs them.
+
+## Lock rules
+
+| Who | Locked tests | Other tests | Production code | `specs/` | Lock settings |
 |---|---|---|---|---|---|
-| Agent principal | bloqué | autorisé | autorisé | autorisé, sauf `acceptance-tests.md` | bloqué |
-| `test-writer` | autorisé | autorisé | bloqué | autorisé | bloqué |
-| `spec-reviewer` | bloqué | bloqué | bloqué | bloqué | bloqué |
+| Main agent | blocked | allowed | allowed | allowed, except `acceptance-tests.md` | blocked |
+| `test-writer` | allowed | allowed | blocked | allowed | blocked |
+| `spec-reviewer` | blocked | blocked | blocked | blocked | blocked |
 
-**Quels tests sont verrouillés.** Dès que la feature courante (branche `NNN-nom`, sinon `.specify/feature.json`) a une ligne `Référence : <SHA>` dans son `acceptance-tests.md`, le verrou porte sur les fichiers ajoutés par les commits de référence de toutes les features, et sur les `acceptance-tests.md` eux-mêmes. Les tests unitaires que l'implémentation écrit restent libres.
+**Which tests are locked.** Once the current feature (branch `NNN-name`, otherwise `.specify/feature.json`) has a `Référence : <SHA>` line in its `acceptance-tests.md`, the lock covers the files added by the reference commits of every feature, plus the `acceptance-tests.md` files themselves. Unit tests written during implementation stay editable.
 
-Tant que la feature courante n'a pas de référence (pendant `/speckit-tests`), ou si une référence est introuvable dans l'historique, le verrou retombe sur des motifs de chemins. Par défaut : `*_test.go`, `*.spec.*` / `*.test.*` (ts, tsx, js, mjs, vue), `__tests__/`, `e2e/`, `testdata/`. Pour les changer, créer `.specify/speckit-guard.env` :
+While the current feature has no reference yet (during `/speckit-tests`), or if a reference cannot be found in the history, the lock falls back to path patterns. Defaults: `*_test.go`, `*.spec.*` / `*.test.*` (ts, tsx, js, mjs, vue), `__tests__/`, `e2e/`, `testdata/`. To change them, create `.specify/speckit-guard.env`:
 
 ```
 TEST_RE='(^|/)tests/|_test\.go$'
 ```
 
-Ce fichier est lui-même protégé contre les modifications de l'agent.
+That file is itself protected from the agent. This setting applies to file-writing tools only; Bash commands are checked against a fixed set of patterns.
 
-**Échappatoire humaine** : lancer la session avec `TESTS_UNLOCKED=1 claude` pour corriger un test à la main. L'agent ne peut pas modifier cette variable.
+**Escape hatch for humans**: start the session with `TESTS_UNLOCKED=1 claude` to fix a test by hand. The agent cannot change this variable.
 
-## Limites
+## Limitations
 
-- Le filtrage des commandes Bash est heuristique. Un agent déterminé peut écrire un fichier par un chemin détourné (script inline, par exemple). Le hook arrête les cas courants, pas un adversaire.
-- **La vraie garantie est `/speckit-verify`** : il compare les tests au commit de référence avec `git diff`, indépendamment du hook. Pour aller plus loin, le même contrôle peut tourner en CI.
-- Un test vert ne prouve pas l'intention. La qualité du résultat dépend d'abord de la précision des critères d'acceptation de la spec : traiter la section « Ambiguïtés » de `acceptance-tests.md` avant d'implémenter.
-- Le mutation testing n'est lancé que si l'outil est déjà installé (`gremlins` pour Go, Stryker configuré pour le front).
+- Bash command filtering is heuristic. A determined agent can write a file through an indirect route, such as an inline script. The hook stops the common cases, not an adversary.
+- **The real guarantee is `/speckit-verify`**: it compares the tests to the reference commit with `git diff`, independently of the hook. The same check can run in CI.
+- A green test does not prove intent. The result is only as good as the acceptance criteria in the spec: resolve the "Ambiguïtés" section of `acceptance-tests.md` before implementing.
 
-## Développement
+## Development
 
 ```
-bash plugins/speckit-guard/tests/lock-tests.test.sh   # tests du hook
-claude plugin validate .                               # manifestes
+bash plugins/speckit-guard/tests/lock-tests.test.sh   # hook tests (requires jq)
+claude plugin validate .                               # manifest validation
 ```
+
+## License
+
+[Apache 2.0](LICENSE)

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Nature du dépôt
 
-Marketplace de plugins Claude Code (`.claude-plugin/marketplace.json`, nom `kolapsis`) qui contient un seul plugin, `plugins/speckit-guard`. Il n'y a ni build ni dépendances : le plugin est fait de Markdown (commandes, agents), d'un `hooks.json` et d'un script bash. Tout le contenu (prompts, messages du hook, README) est en français.
+Marketplace de plugins Claude Code (`.claude-plugin/marketplace.json`, nom `kolapsis`) qui contient un seul plugin, `plugins/speckit-guard`. Il n'y a ni build ni dépendances : le plugin est fait de Markdown (commandes, agents), d'un `hooks.json` et d'un script bash. Les prompts et les messages du hook sont en français. Le README existe en deux versions à garder synchronisées : `README.md` en anglais, `README.fr.md` en français.
 
 ## Commandes
 
@@ -37,4 +37,4 @@ Couplages à garder en tête quand on modifie un morceau :
 - Le hook a deux modes. Mode « référence » : dès que la feature courante (branche, sinon `.specify/feature.json`) a une ligne `Référence : <SHA>`, seuls les fichiers ajoutés par les commits de référence de toutes les features (`git show --name-only --diff-filter=A`, hors `specs/`) et les `acceptance-tests.md` sont verrouillés. Mode « motifs » : avant toute référence, ou si un SHA est introuvable, retour aux motifs de chemins. Le format de la ligne `Référence :` est partagé avec `speckit-tests.md` et `speckit-verify.md`.
 - En mode « motifs », deux jeux de motifs coexistent : `TEST_RE` (outils d'écriture, surchargeable via `.specify/speckit-guard.env`) et `TEST_BASH_RE` (commandes Bash, fixe). Un `TEST_RE` personnalisé ne s'applique donc pas au filtrage Bash. Les tests du hook créent un vrai dépôt git temporaire pour couvrir le mode « référence ».
 - Le filtrage Bash ne s'active que si la commande matche `WRITE_OPS_RE`, après neutralisation de `2>&1` et `>/dev/null`.
-- Le README décrit les règles du verrou (tableau agent × type de fichier) et les chemins de test par défaut : le tenir à jour si le hook change, ainsi que `version` dans `plugin.json`.
+- Les deux README décrivent les règles du verrou (tableau agent × type de fichier) et les chemins de test par défaut : les tenir à jour si le hook change, ainsi que `version` dans `plugin.json`.
