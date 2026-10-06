@@ -14,16 +14,19 @@ In spec-driven development with Spec Kit, the agent that implements a feature al
 
 ## What speckit-guard adds
 
-1. **`/speckit-tests`**: an isolated subagent (`test-writer`) reads only the spec, writes the acceptance tests before implementation, and proves they fail. The tests are committed, and that commit becomes the reference.
-2. **A lock on the tests**: during `/speckit-implement`, a `PreToolUse` hook prevents the agent from modifying those tests. It has to change the code, not the target.
-3. **`/speckit-verify`**: mechanical checks first (`git diff` of the tests against the reference commit, full test suite, mutation testing if a tool is installed), then a `spec-reviewer` subagent that never saw the implementation reasoning judges each acceptance criterion as OK, PARTIAL or MISSING. Gaps are appended to `tasks.md` as remediation tasks.
+1. **`/speckit-tests`**: a skeleton of the planned interfaces is created first, so that the tests compile. Then an isolated subagent (`test-writer`) reads only the spec, writes the acceptance tests before implementation, and proves they fail at runtime. It also flags contradictions with the other features' specs. The tests are committed, and that commit becomes the reference.
+2. **A lock on the tests**: during `/speckit-implement`, a `PreToolUse` hook prevents the agent from modifying those tests. It has to change the code, not the target. If a locked test is itself broken, `/speckit-fix-test` has the `test-writer` repair it and records the change as an amendment, without stopping the run.
+3. **`/speckit-verify`**: mechanical checks first (no change to the tests since the reference commit other than amendments, full test suite, mutation testing if a tool is installed), then a `spec-reviewer` subagent that never saw the implementation reasoning judges each acceptance criterion as OK, PARTIAL or MISSING. Gaps are appended to `tasks.md` as remediation tasks.
 
 ## Workflow
+
+Run `/speckit-tests` for a feature just before implementing it, once the features it depends on are merged, not for every feature in advance: tests written too early rely on interfaces that earlier implementations may still change.
 
 ```
 /speckit-specify → /speckit-plan → /speckit-tasks    Spec Kit, unchanged
 /speckit-tests      red acceptance tests, reference commit
 /speckit-implement  Spec Kit, unchanged, runs into tests it cannot edit
+  /speckit-fix-test   only when a locked test is itself broken
 /speckit-verify     PASS / FAIL verdict, gaps added to tasks.md
 ```
 
@@ -31,7 +34,9 @@ When the implementing agent tries to edit a locked test, the hook blocks the too
 
 ```
 speckit-guard: tests/e2e/login.spec.ts is a locked acceptance test. Change the code,
-not the tests. If a test looks wrong or contradicts the spec, stop and tell the human.
+not the tests. If the test itself is broken (compile error, fixture, typo) or contradicts
+the spec, run /speckit-guard:speckit-fix-test tests/e2e/login.spec.ts; a subagent that
+cannot run it reports the raw failure to its caller.
 ```
 
 ## Installation
@@ -78,12 +83,14 @@ TEST_RE='(^|/)tests/|_test\.go$'
 
 That file is itself protected from the agent. This setting applies to file-writing tools only; Bash commands are checked against a fixed set of patterns.
 
+**Repairing a locked test**: `/speckit-fix-test <test file>` passes the failure to the `test-writer`, without the implementer's diagnosis. The `test-writer` fixes the test if it is wrong (FIXED), refuses if it matches the spec (REFUSED), or records the question if two specs disagree (CONFLICT). A fix is committed alone and listed in the "Amendments" section of `acceptance-tests.md`; `/speckit-verify` has the `spec-reviewer` check that no amendment weakened a test.
+
 **Escape hatch for humans**: start the session with `TESTS_UNLOCKED=1 claude` to fix a test by hand. The agent cannot change this variable.
 
 ## Limitations
 
 - Bash command filtering is heuristic. A determined agent can write a file through an indirect route, such as an inline script. The hook stops the common cases, not an adversary.
-- **The real guarantee is `/speckit-verify`**: it compares the tests to the reference commit with `git diff`, independently of the hook. The same check can run in CI.
+- **The real guarantee is `/speckit-verify`**: it checks with `git log` and `git diff` that the tests changed only through amendments since the reference commit, independently of the hook. The same check can run in CI.
 - A green test does not prove intent. The result is only as good as the acceptance criteria in the spec: resolve the "Spec ambiguities" section of `acceptance-tests.md` before implementing.
 
 ## Development

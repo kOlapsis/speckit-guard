@@ -24,10 +24,11 @@ printf '%s' '{"tool_name":"Edit","tool_input":{"file_path":"/p/x_test.go"}}' \
 
 ## Architecture
 
-Le plugin s'insère dans le flux SpecKit : `/speckit-tests` → `/speckit-implement` (SpecKit, inchangé) → `/speckit-verify`.
+Le plugin s'insère dans le flux SpecKit : `/speckit-tests` → `/speckit-implement` (SpecKit, inchangé, avec `/speckit-fix-test` au besoin) → `/speckit-verify`.
 
-- `commands/speckit-tests.md` orchestre et délègue au sous-agent `test-writer`, puis fige les tests dans un commit dont le SHA est écrit dans `acceptance-tests.md` (ligne `Référence : <SHA>`).
-- `commands/speckit-verify.md` relit ce SHA, fait les contrôles mécaniques (`git diff <SHA>..HEAD` sur les tests, suite complète, mutation testing si présent), puis délègue au sous-agent `spec-reviewer`. C'est la vraie garantie ; le hook n'est qu'une barrière heuristique.
+- `commands/speckit-tests.md` crée un squelette d'interfaces (corps « not implemented ») pour que les tests compilent, délègue au sous-agent `test-writer`, puis fige les tests dans un commit dont le SHA est écrit dans `acceptance-tests.md` (ligne `Référence : <SHA>`).
+- `commands/speckit-fix-test.md`, lancé pendant l'implémentation quand un test verrouillé est lui-même faux : relance `test-writer` en mode réparation (verdict FIXED / REFUSED / CONFLICT) et commite la correction seule, tracée dans la section « Amendments » d'`acceptance-tests.md`. Le message de blocage du hook renvoie vers cette commande.
+- `commands/speckit-verify.md` relit ce SHA, fait les contrôles mécaniques (`git log <SHA>..HEAD` sur les tests, où seuls les commits d'amendement sont admis, suite complète, mutation testing si présent), puis délègue au sous-agent `spec-reviewer`. C'est la vraie garantie ; le hook n'est qu'une barrière heuristique.
 - `scripts/lock-tests.sh`, branché en `PreToolUse` sur `Write|Edit|MultiEdit|NotebookEdit|Bash` : lit le JSON de l'outil sur stdin, **exit 2 = blocage** (message sur stderr), exit 0 = autorisé.
 
 Couplages à garder en tête quand on modifie un morceau :
