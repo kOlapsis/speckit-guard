@@ -17,6 +17,7 @@
 # - Nobody may touch the settings that would disable the lock
 #   (.claude/settings*.json, plugin cache, .specify/speckit-guard.env).
 #
+# Repairing a broken locked test: /speckit-fix-test, through the test-writer.
 # Human escape hatch: start the session with TESTS_UNLOCKED=1 claude
 #
 # Custom test paths for "patterns" mode: .specify/speckit-guard.env
@@ -153,10 +154,10 @@ case "$tool" in
     esac
 
     if [[ "$mode" == reference && "$path" =~ $ACCEPTANCE_DOC_RE ]]; then
-      block "$path holds the reference of the locked tests and cannot be modified during implementation."
+      block "$path holds the reference of the locked tests and cannot be modified during implementation. To repair a broken acceptance test, run /speckit-guard:speckit-fix-test <test file>."
     fi
     if is_locked "$path"; then
-      block "$path is a locked acceptance test. Change the code, not the tests. If a test looks wrong or contradicts the spec, stop and tell the human."
+      block "$path is a locked acceptance test. Change the code, not the tests. If the test itself is broken (compile error, fixture, typo) or contradicts the spec, run /speckit-guard:speckit-fix-test $path; a subagent that cannot run it reports the raw failure to its caller."
     fi
     exit 0
     ;;
@@ -174,7 +175,7 @@ case "$tool" in
       block "the spec-reviewer is read-only (git diff, git log and running tests only)."
     fi
     if [[ "$agent" != "test-writer" ]] && bash_touches_locked "$clean"; then
-      block "this command modifies locked acceptance tests and is not allowed."
+      block "this command modifies locked acceptance tests and is not allowed. To repair a broken acceptance test, run /speckit-guard:speckit-fix-test <test file>."
     fi
     exit 0
     ;;

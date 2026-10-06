@@ -17,7 +17,10 @@ Read the reference SHA from the `Reference:` line of `acceptance-tests.md` (olde
 
 ## 2. Mechanical checks (before any judgement)
 
-1. **Test integrity**: list the test files added in the reference commit and check with `git diff <SHA>..HEAD` that none has changed. If one has changed, the verdict is FAIL, whatever the rest.
+1. **Test integrity**: list the test files added in the reference commit. They may only have changed through amendments made by `/speckit-fix-test`.
+   - `git status --porcelain -- <files>`: no uncommitted change.
+   - `git log --format='%h %s' <SHA>..HEAD -- <files>`: each of these commits is an amendment. It must be named `test(<feature>): fix ...`, touch only test files and `specs/` (`git show --name-only`), and match an entry of the "Amendments" section of `acceptance-tests.md`.
+   If any of these fails, the verdict is FAIL, whatever the rest.
 2. **Full suite**: run all of the project's test commands. Record the result.
 3. **Mutation testing, if the tool is already installed** (do not install it yourself):
    - Go: `gremlins` on the packages changed since the reference.
@@ -29,6 +32,7 @@ Read the reference SHA from the `Reference:` line of `acceptance-tests.md` (olde
 Launch the `spec-reviewer` subagent with **only**:
 - the path of the feature directory,
 - the reference SHA,
+- the SHAs of the amendment commits,
 - the raw results of the mechanical checks.
 
 Pass on no summary of the implementation and no opinion of your own: it must judge cold, from the spec and the diff.
@@ -41,4 +45,4 @@ If the verdict is FAIL or if some criteria are PARTIAL or MISSING, append to `ta
 
 ## 5. Hand back
 
-Give the overall verdict in one line, the main gaps, and what the human must test by hand. Fix nothing in this command.
+Give the overall verdict in one line, the main gaps, the spec conflicts recorded in `acceptance-tests.md` during implementation, and what the human must test by hand. Fix nothing in this command.

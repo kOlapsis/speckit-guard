@@ -1,6 +1,6 @@
 {
   "name": "speckit-guard",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Companion to GitHub Spec Kit: acceptance tests written before implementation by an isolated subagent, locked during implementation, then a fresh-context review against the spec.",
   "author": {
     "name": "Benjamin",
