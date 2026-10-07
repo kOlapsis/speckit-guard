@@ -23,7 +23,7 @@ Read the reference SHA from the `Reference:` line of `acceptance-tests.md` (olde
    If any of these fails, the verdict is FAIL, whatever the rest.
 2. **Full suite**: run all of the project's test commands. Record the result.
 3. **Mutation testing, if the tool is already installed** (do not install it yourself):
-   - Go: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/mutation-go.sh" <package>...` on the packages changed since the reference. Never call `gremlins unleash` directly and never raise its limits: a mutant that loops while allocating fills the machine's memory. The script caps memory (`SPECKIT_MUTATION_MEMORY`, 4G by default) and time per package; an exit code of 137 on a package means the memory cap stopped it, record it as such.
+   - Go: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/mutation-go.sh" <package>...` on the packages changed since the reference. Never call `gremlins unleash` directly and never raise its limits: a mutant that loops while allocating fills the machine's memory. The script caps memory (`SPECKIT_MUTATION_MEMORY`, 4G by default) and time per package; an exit code of 137 on a package means the memory cap stopped it, record it as such. Run it as a plain command, at most piped to `tail` (`2>&1 | tail -n 60`): with a redirection to a file or `tee`, the test lock refuses any command that names the plugin directory.
    - Frontend: Stryker, only if it is configured in the project.
    Record the score and the surviving mutants in the changed code. If no tool is available, note "mutation testing not run".
 
