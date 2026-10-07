@@ -66,6 +66,7 @@ Les commandes laissent l'agent détecter et lancer les commandes de test du proj
 
 - Les motifs de verrouillage par défaut visent les fichiers de test Go et JavaScript/TypeScript. Ils ne servent qu'avant l'existence du commit de référence et peuvent être changés (voir plus bas).
 - Le mutation testing n'est lancé que si l'outil est déjà installé : `gremlins` pour Go, Stryker pour le front s'il est configuré. Le plugin ne les installe jamais.
+- `gremlins` passe par `scripts/mutation-go.sh`, package par package, avec un plafond mémoire (scope `systemd-run --user`, sinon `ulimit -v`) et une limite de temps, pour qu'un mutant qui boucle en allouant ne puisse pas épuiser la mémoire de la machine. Réglages : `SPECKIT_MUTATION_MEMORY` (4G), `SPECKIT_MUTATION_WORKERS` (2), `SPECKIT_MUTATION_TIMEOUT_COEFFICIENT` (10), `SPECKIT_MUTATION_PACKAGE_TIMEOUT` (1800 secondes).
 
 ## Règles du verrou
 

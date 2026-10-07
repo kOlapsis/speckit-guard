@@ -64,6 +64,7 @@ The commands let the agent detect and run your project's test commands, so the w
 
 - The default lock patterns target Go and JavaScript/TypeScript test files. They only apply before the reference commit exists, and can be changed (see below).
 - Mutation testing runs only if the tool is already installed: `gremlins` for Go, Stryker for the frontend if configured. The plugin never installs them.
+- `gremlins` runs through `scripts/mutation-go.sh`, package by package, under a memory cap (a `systemd-run --user` scope, otherwise `ulimit -v`) and a time limit, so that a mutant that loops while allocating cannot exhaust the machine's memory. Settings: `SPECKIT_MUTATION_MEMORY` (4G), `SPECKIT_MUTATION_WORKERS` (2), `SPECKIT_MUTATION_TIMEOUT_COEFFICIENT` (10), `SPECKIT_MUTATION_PACKAGE_TIMEOUT` (1800 seconds).
 
 ## Lock rules
 

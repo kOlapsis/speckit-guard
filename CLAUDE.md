@@ -10,6 +10,7 @@ Marketplace de plugins Claude Code (`.claude-plugin/marketplace.json`, nom `kola
 
 ```
 bash plugins/speckit-guard/tests/lock-tests.test.sh   # tests du hook (nécessite jq)
+bash plugins/speckit-guard/tests/mutation-go.test.sh  # tests du lanceur gremlins
 claude plugin validate .                               # validation des manifestes
 ```
 
@@ -29,6 +30,7 @@ Le plugin s'insère dans le flux SpecKit : `/speckit-tests` → `/speckit-implem
 - `commands/speckit-tests.md` crée un squelette d'interfaces (corps « not implemented ») pour que les tests compilent, délègue au sous-agent `test-writer`, puis fige les tests dans un commit dont le SHA est écrit dans `acceptance-tests.md` (ligne `Référence : <SHA>`).
 - `commands/speckit-fix-test.md`, lancé pendant l'implémentation quand un test verrouillé est lui-même faux : relance `test-writer` en mode réparation (verdict FIXED / REFUSED / CONFLICT) et commite la correction seule, tracée dans la section « Amendments » d'`acceptance-tests.md`. Le message de blocage du hook renvoie vers cette commande.
 - `commands/speckit-verify.md` relit ce SHA, fait les contrôles mécaniques (`git log <SHA>..HEAD` sur les tests, où seuls les commits d'amendement sont admis, suite complète, mutation testing si présent), puis délègue au sous-agent `spec-reviewer`. C'est la vraie garantie ; le hook n'est qu'une barrière heuristique.
+- `scripts/mutation-go.sh`, appelé par `speckit-verify.md` : lance `gremlins` package par package dans un scope `systemd-run --user` (`MemoryMax`, `MemorySwapMax=0`, `OOMPolicy=continue` pour que seul le processus fautif soit tué, `RuntimeMaxSec`), sinon sous `ulimit -v` et `timeout`.
 - `scripts/lock-tests.sh`, branché en `PreToolUse` sur `Write|Edit|MultiEdit|NotebookEdit|Bash` : lit le JSON de l'outil sur stdin, **exit 2 = blocage** (message sur stderr), exit 0 = autorisé.
 
 Couplages à garder en tête quand on modifie un morceau :
