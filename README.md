@@ -39,6 +39,27 @@ the spec, run /speckit-guard:speckit-fix-test tests/e2e/login.spec.ts; a subagen
 cannot run it reports the raw failure to its caller.
 ```
 
+## One feature per session, with Escouade
+
+Chaining several features in one session makes the context grow with each feature, until it costs more than the work itself. A fresh session per feature costs less and keeps the reviews sharp. [Escouade](https://github.com/guillaume-gagnaire/escouade) (1.7 or later) does this on a Kanban board: one ticket per feature, each run by its own Claude Code agent in its own worktree, with progress on the board and the agent's questions relayed in the window.
+
+Spec Kit and the hook both find the current feature from the branch name, so a ticket must run on the feature branch, not on Escouade's own `escouade/<key>` branch:
+
+1. Create the specs beforehand, in a normal session: `/speckit-specify` for each feature creates the `NNN-name` branch and `specs/NNN-name/`. Then put the project folder back on `main`: a branch checked out there cannot be given to a worktree.
+2. Board settings (Settings › Kanban, or `set_board` through the MCP server): target `main`, strategy `merge` so that the reference commit stays reachable from `main` by its SHA (the hook and `/speckit-verify` look it up that way), one ticket at a time, autopilot on.
+3. One ticket per feature, with the form's "Branch" field set to the feature branch, each ticket after the previous one. Description:
+
+```
+Feature specs/043-public-surfaces-hardening, on its branch.
+Run git merge main first. Then, in order: /speckit-plan, /speckit-tasks,
+/speckit-guard:speckit-tests, /speckit-implement, /speckit-guard:speckit-verify.
+If verify adds remediation tasks, implement them and run verify again.
+```
+
+Acceptance criteria worth adding: `acceptance-tests.md` has a `Reference:` line, and the last `/speckit-verify` report has no MISSING criterion.
+
+A ticket waits for the ones before it to be approved, and approval is a click in the window or `approve_ticket` through the MCP server. For an unattended run, a small session with the Escouade MCP server can `wait_ticket` on each ticket and approve it when it rests; its context stays small since it only relays the board. The `git merge main` at the start of each ticket brings in the previous feature and the tests it locked.
+
 ## Installation
 
 The repository is a plugin marketplace named `kolapsis`. In Claude Code:

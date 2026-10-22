@@ -41,6 +41,27 @@ cannot run it reports the raw failure to its caller.
 
 Ce message s'adresse à l'agent, qui le reformule ensuite pour l'utilisateur.
 
+## Une feature par session, avec Escouade
+
+Enchaîner plusieurs features dans une même session fait grossir le contexte à chaque feature, jusqu'à coûter plus cher que le travail lui-même. Une session neuve par feature coûte moins et garde les revues précises. [Escouade](https://github.com/guillaume-gagnaire/escouade) (1.7 ou plus) le fait sur un Kanban : un ticket par feature, chacun exécuté par son propre agent Claude Code dans son propre worktree, avec l'avancement sur le tableau et les questions de l'agent relayées dans la fenêtre.
+
+Spec Kit et le hook retrouvent la feature courante par le nom de la branche : un ticket doit donc tourner sur la branche de la feature, pas sur la branche `escouade/<clé>` d'Escouade.
+
+1. Créer les specs avant, dans une session normale : `/speckit-specify` par feature crée la branche `NNN-nom` et `specs/NNN-nom/`. Remettre ensuite le dossier du projet sur `main` : une branche extraite là ne peut pas être donnée à un worktree.
+2. Réglages du tableau (Réglages › Kanban, ou `set_board` par le serveur MCP) : branche cible `main`, stratégie `merge` pour que le commit de référence reste joignable depuis `main` par son SHA (le hook et `/speckit-verify` le cherchent ainsi), un ticket à la fois, pilote auto.
+3. Un ticket par feature, champ « Branche » du formulaire sur la branche de la feature, chaque ticket après le précédent. Description :
+
+```
+Feature specs/043-public-surfaces-hardening, sur sa branche.
+Commence par git merge main. Puis, dans l'ordre : /speckit-plan, /speckit-tasks,
+/speckit-guard:speckit-tests, /speckit-implement, /speckit-guard:speckit-verify.
+Si verify ajoute des tâches de remédiation, implémente-les et relance verify.
+```
+
+Critères d'acceptation utiles : `acceptance-tests.md` a une ligne `Reference:`, et le dernier rapport de `/speckit-verify` n'a aucun critère MISSING.
+
+Un ticket attend que ceux qui le précèdent soient validés, et la validation est un clic dans la fenêtre ou `approve_ticket` par le serveur MCP. Pour une nuit sans surveillance, une petite session avec le serveur MCP d'Escouade peut faire `wait_ticket` sur chaque ticket et le valider quand il se pose ; son contexte reste petit puisqu'elle ne fait que relayer le tableau. Le `git merge main` au début de chaque ticket rapporte la feature précédente et les tests qu'elle a verrouillés.
+
 ## Installation
 
 Le dépôt est un marketplace de plugins, nommé `kolapsis`. Dans Claude Code :
