@@ -20,12 +20,18 @@ In this order:
 
 If nothing matches, or if the choice is ambiguous, ask the human. Check that `spec.md` exists. If `acceptance-tests.md` already exists, ask whether to complete it or start over.
 
-## 2. Starting state
+## 2. Feature size
+
+Run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/count-criteria.sh" <feature directory>/spec.md` as a plain command, at most piped to `tail`: with a redirection to a file or `tee`, the test lock refuses any command that names the plugin directory. The script counts the acceptance scenarios, the edge cases, the requirements (leaf identifiers only) and the success criteria, and exits 1 above the limit: 60 by default, `MAX_CRITERIA` in `.specify/speckit-guard.env`.
+
+Over the limit, stop before writing anything. Every later step grows with the size of the feature: the tests to write, the diff to review, the suites to run. Show the counts and propose a split into smaller features along the user stories, each under the limit, in the order of their priorities and dependencies; the split itself is done with `/speckit-specify`. Go on with this feature only if the human explicitly asks to keep it whole.
+
+## 3. Starting state
 
 - The git tree must be clean; otherwise ask the human to commit or stash first.
 - Detect the project's test commands (for example `go test ./...`, and the frontend test script if there is one) and run the suite. If it is already red, stop and report it: the new tests cannot be proven red on a broken base.
 
-## 3. Interface skeleton
+## 4. Interface skeleton
 
 The tests must compile and run, so that a mistake in a test shows up now and not during implementation.
 
@@ -33,7 +39,7 @@ From `plan.md` and `contracts/` only, create the public interfaces the tests wil
 
 The project must still build (for example `go vet ./...`, `tsc --noEmit`) and the existing suite must stay green. Commit the skeleton alone: `chore(<feature>): interface skeleton`. Skip this step if the plan defines no new interface.
 
-## 4. Delegate to the test-writer
+## 5. Delegate to the test-writer
 
 Launch the `test-writer` subagent with **only**:
 - the path of the feature directory,
@@ -47,7 +53,7 @@ You cannot write the tests yourself: the project's lock prevents it.
 
 If `acceptance-tests.md` has a non-empty "Missing interfaces" section, add those signatures to the skeleton exactly as listed, with failing bodies, commit them alone (`chore(<feature>): complete interface skeleton`), then launch the `test-writer` again with the same inputs to finish proving red.
 
-## 5. Check its work
+## 6. Check its work
 
 - `acceptance-tests.md` exists and every criterion of the spec appears in it, either as a test or in the "Not covered" section.
 - Run every listed test yourself: all of them must fail, on an assertion or on "not implemented", never on a compile or import error. Report any passing test to the human.
@@ -55,11 +61,11 @@ If `acceptance-tests.md` has a non-empty "Missing interfaces" section, add those
 - Only test files and files under `specs/` have changed (`git status`).
 - If the "Conflicts with other features" part of the spec ambiguities is not empty, stop before freezing. Show the conflicts to the human and ask whether to fix the specs first (then run the `test-writer` again) or freeze as is.
 
-## 6. Freeze the reference
+## 7. Freeze the reference
 
 Commit the tests and `acceptance-tests.md` alone, with a message of the form `test(<feature>): acceptance tests (red)`. Then add a line `Reference: <short SHA>` at the top of `acceptance-tests.md` and commit it. Write this line exactly in that form, in English, whatever the language of the file: the lock and `/speckit-verify` read it.
 
-## 7. Hand back
+## 8. Hand back
 
 Short summary:
 - criteria covered / total,

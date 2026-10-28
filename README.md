@@ -14,9 +14,9 @@ In spec-driven development with Spec Kit, the agent that implements a feature al
 
 ## What speckit-guard adds
 
-1. **`/speckit-tests`**: a skeleton of the planned interfaces is created first, so that the tests compile. Then an isolated subagent (`test-writer`) reads only the spec, writes the acceptance tests before implementation, and proves they fail at runtime. It also flags contradictions with the other features' specs. The tests are committed, and that commit becomes the reference.
+1. **`/speckit-tests`**: a feature with too many acceptance criteria (more than 60 by default) is stopped first, with a proposed split along its user stories. Then a skeleton of the planned interfaces is created first, so that the tests compile. Then an isolated subagent (`test-writer`) reads only the spec, writes the acceptance tests before implementation, and proves they fail at runtime. It also flags contradictions with the other features' specs. The tests are committed, and that commit becomes the reference.
 2. **A lock on the tests**: during `/speckit-implement`, a `PreToolUse` hook prevents the agent from modifying those tests. It has to change the code, not the target. If a locked test is itself broken, `/speckit-fix-test` has the `test-writer` repair it and records the change as an amendment, without stopping the run.
-3. **`/speckit-verify`**: mechanical checks first (no change to the tests since the reference commit other than amendments, full test suite), then a `spec-reviewer` subagent that never saw the implementation reasoning judges each acceptance criterion as OK, PARTIAL or MISSING. Gaps are appended to `tasks.md` as remediation tasks.
+3. **`/speckit-verify`**: mechanical checks first (no change to the tests since the reference commit other than amendments, tests of what changed since the previous round), then a `spec-reviewer` subagent that never saw the implementation reasoning judges each acceptance criterion as OK, PARTIAL or MISSING. It runs once per user story (`/speckit-verify US2`), then a final round runs the full suite and judges only what is left. Gaps are appended to `tasks.md` as remediation tasks.
 
 ## Workflow
 
@@ -27,8 +27,11 @@ Run `/speckit-tests` for a feature just before implementing it, once the feature
 /speckit-tests      red acceptance tests, reference commit
 /speckit-implement  Spec Kit, unchanged, runs into tests it cannot edit
   /speckit-fix-test   only when a locked test is itself broken
-/speckit-verify     PASS / FAIL verdict, gaps added to tasks.md
+  /speckit-verify US<n>  after each user story: its criteria, the diff since the last round
+/speckit-verify     final round: full suite, what is left, PASS / FAIL, gaps added to tasks.md
 ```
+
+Each round of `/speckit-verify` starts its section of `verification.md` with `Verified: <SHA> <scope> <verdict>`. The next round runs only the tests of what changed since that SHA and has the `spec-reviewer` read only that diff, which keeps a round short even on a large feature.
 
 When the implementing agent tries to edit a locked test, the hook blocks the tool call and tells it why:
 
@@ -103,6 +106,12 @@ TEST_RE='(^|/)tests/|_test\.go$'
 
 That file is itself protected from the agent. This setting applies to file-writing tools only; Bash commands are checked against a fixed set of patterns.
 
+The same file sets the size limit checked by `/speckit-tests` (scenarios, edge cases, leaf requirements and success criteria of `spec.md`):
+
+```
+MAX_CRITERIA=60
+```
+
 **Repairing a locked test**: `/speckit-fix-test <test file>` passes the failure to the `test-writer`, without the implementer's diagnosis. The `test-writer` fixes the test if it is wrong (FIXED), refuses if it matches the spec (REFUSED), or records the question if two specs disagree (CONFLICT). A fix is committed alone and listed in the "Amendments" section of `acceptance-tests.md`; `/speckit-verify` has the `spec-reviewer` check that no amendment weakened a test.
 
 **Escape hatch for humans**: start the session with `TESTS_UNLOCKED=1 claude` to fix a test by hand. The agent cannot change this variable.
@@ -116,8 +125,9 @@ That file is itself protected from the agent. This setting applies to file-writi
 ## Development
 
 ```
-bash plugins/speckit-guard/tests/lock-tests.test.sh   # hook tests (requires jq)
-claude plugin validate .                               # manifest validation
+bash plugins/speckit-guard/tests/lock-tests.test.sh      # hook tests (requires jq)
+bash plugins/speckit-guard/tests/count-criteria.test.sh  # criteria counter tests
+claude plugin validate .                                  # manifest validation
 ```
 
 ## License

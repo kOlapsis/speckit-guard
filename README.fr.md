@@ -14,9 +14,9 @@ Avec Spec Kit, l'agent qui implémente une feature écrit aussi ses tests et dé
 
 ## Ce que speckit-guard ajoute
 
-1. **`/speckit-tests`** : un squelette des interfaces prévues est d'abord créé pour que les tests compilent. Ensuite, un sous-agent isolé (`test-writer`) lit seulement la spec, écrit les tests d'acceptation avant l'implémentation et prouve qu'ils échouent à l'exécution. Il signale aussi les contradictions avec les specs des autres features. Les tests sont commités, et ce commit devient la référence.
+1. **`/speckit-tests`** : une feature qui a trop de critères d'acceptation (plus de 60 par défaut) est d'abord arrêtée, avec une proposition de découpage selon ses user stories. Ensuite, un squelette des interfaces prévues est d'abord créé pour que les tests compilent. Ensuite, un sous-agent isolé (`test-writer`) lit seulement la spec, écrit les tests d'acceptation avant l'implémentation et prouve qu'ils échouent à l'exécution. Il signale aussi les contradictions avec les specs des autres features. Les tests sont commités, et ce commit devient la référence.
 2. **Un verrou sur les tests** : pendant `/speckit-implement`, un hook `PreToolUse` empêche l'agent de modifier ces tests. Il doit faire évoluer le code, pas la cible. Si un test verrouillé est lui-même faux, `/speckit-fix-test` le fait réparer par le `test-writer` et enregistre la modification comme un amendement, sans arrêter le run.
-3. **`/speckit-verify`** : d'abord des contrôles mécaniques (aucune modification des tests depuis le commit de référence en dehors des amendements, suite complète), puis un sous-agent `spec-reviewer`, qui n'a jamais vu le raisonnement de l'implémenteur, juge chaque critère d'acceptation OK, PARTIAL ou MISSING. Les écarts sont ajoutés à `tasks.md` comme tâches de remédiation.
+3. **`/speckit-verify`** : d'abord des contrôles mécaniques (aucune modification des tests depuis le commit de référence en dehors des amendements, tests de ce qui a changé depuis le tour précédent), puis un sous-agent `spec-reviewer`, qui n'a jamais vu le raisonnement de l'implémenteur, juge chaque critère d'acceptation OK, PARTIAL ou MISSING. La commande tourne une fois par user story (`/speckit-verify US2`), puis un tour final lance la suite complète et ne juge que ce qui reste. Les écarts sont ajoutés à `tasks.md` comme tâches de remédiation.
 
 ## Flux
 
@@ -27,8 +27,11 @@ Lancer `/speckit-tests` pour une feature juste avant de l'implémenter, une fois
 /speckit-tests      tests d'acceptation rouges, commit de référence
 /speckit-implement  Spec Kit, inchangé, bute sur des tests qu'il ne contrôle pas
   /speckit-fix-test   seulement si un test verrouillé est lui-même faux
-/speckit-verify     verdict PASS / FAIL, écarts ajoutés à tasks.md
+  /speckit-verify US<n>  après chaque user story : ses critères, le diff depuis le dernier tour
+/speckit-verify     tour final : suite complète, ce qui reste, PASS / FAIL, écarts ajoutés à tasks.md
 ```
+
+Chaque tour de `/speckit-verify` commence sa section de `verification.md` par `Verified: <SHA> <portée> <verdict>`. Le tour suivant ne lance que les tests de ce qui a changé depuis ce SHA et ne fait lire au `spec-reviewer` que ce diff, ce qui garde un tour court même sur une grosse feature.
 
 Quand l'agent qui implémente essaie de modifier un test verrouillé, le hook bloque l'appel d'outil et lui explique pourquoi :
 
@@ -105,6 +108,12 @@ TEST_RE='(^|/)tests/|_test\.go$'
 
 Ce fichier est lui-même protégé contre les modifications de l'agent. Ce réglage ne concerne que les outils d'écriture de fichiers : les commandes Bash sont filtrées avec un jeu de motifs fixe.
 
+Le même fichier fixe la limite de taille contrôlée par `/speckit-tests` (scénarios, cas limites, exigences terminales et critères de succès de `spec.md`) :
+
+```
+MAX_CRITERIA=60
+```
+
 **Réparer un test verrouillé** : `/speckit-fix-test <fichier de test>` transmet l'échec au `test-writer`, sans le diagnostic de l'implémenteur. Le `test-writer` corrige le test s'il est faux (FIXED), refuse s'il est conforme à la spec (REFUSED), ou note la question si deux specs se contredisent (CONFLICT). Une correction est commitée seule et listée dans la section « Amendments » d'`acceptance-tests.md` ; `/speckit-verify` fait vérifier par le `spec-reviewer` qu'aucun amendement n'a affaibli un test.
 
 **Échappatoire humaine** : lancer la session avec `TESTS_UNLOCKED=1 claude` pour corriger un test à la main. L'agent ne peut pas modifier cette variable.
@@ -118,8 +127,9 @@ Ce fichier est lui-même protégé contre les modifications de l'agent. Ce régl
 ## Développement
 
 ```
-bash plugins/speckit-guard/tests/lock-tests.test.sh   # tests du hook (nécessite jq)
-claude plugin validate .                               # validation des manifestes
+bash plugins/speckit-guard/tests/lock-tests.test.sh      # tests du hook (nécessite jq)
+bash plugins/speckit-guard/tests/count-criteria.test.sh  # tests du compteur de critères
+claude plugin validate .                                  # validation des manifestes
 ```
 
 ## Licence
