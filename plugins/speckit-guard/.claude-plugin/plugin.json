@@ -1,6 +1,6 @@
 {
   "name": "speckit-guard",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Companion to GitHub Spec Kit: acceptance tests written before implementation by an isolated subagent, locked during implementation, then a fresh-context review against the spec.",
   "author": {
     "name": "Benjamin",
@@ -18,7 +18,6 @@
     "tests",
     "test-lock",
     "code-review",
-    "mutation-testing",
     "hooks",
     "harness"
   ]

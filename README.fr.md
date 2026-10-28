@@ -16,7 +16,7 @@ Avec Spec Kit, l'agent qui implémente une feature écrit aussi ses tests et dé
 
 1. **`/speckit-tests`** : un squelette des interfaces prévues est d'abord créé pour que les tests compilent. Ensuite, un sous-agent isolé (`test-writer`) lit seulement la spec, écrit les tests d'acceptation avant l'implémentation et prouve qu'ils échouent à l'exécution. Il signale aussi les contradictions avec les specs des autres features. Les tests sont commités, et ce commit devient la référence.
 2. **Un verrou sur les tests** : pendant `/speckit-implement`, un hook `PreToolUse` empêche l'agent de modifier ces tests. Il doit faire évoluer le code, pas la cible. Si un test verrouillé est lui-même faux, `/speckit-fix-test` le fait réparer par le `test-writer` et enregistre la modification comme un amendement, sans arrêter le run.
-3. **`/speckit-verify`** : d'abord des contrôles mécaniques (aucune modification des tests depuis le commit de référence en dehors des amendements, suite complète, mutation testing si un outil est installé), puis un sous-agent `spec-reviewer`, qui n'a jamais vu le raisonnement de l'implémenteur, juge chaque critère d'acceptation OK, PARTIAL ou MISSING. Les écarts sont ajoutés à `tasks.md` comme tâches de remédiation.
+3. **`/speckit-verify`** : d'abord des contrôles mécaniques (aucune modification des tests depuis le commit de référence en dehors des amendements, suite complète), puis un sous-agent `spec-reviewer`, qui n'a jamais vu le raisonnement de l'implémenteur, juge chaque critère d'acceptation OK, PARTIAL ou MISSING. Les écarts sont ajoutés à `tasks.md` comme tâches de remédiation.
 
 ## Flux
 
@@ -83,11 +83,9 @@ Pour cantonner le plugin à certains projets, active-le au niveau projet plutôt
 
 ### Langages de programmation
 
-Les commandes laissent l'agent détecter et lancer les commandes de test du projet, donc le flux ne dépend pas d'un langage. Deux points sont plus spécifiques :
+Les commandes laissent l'agent détecter et lancer les commandes de test du projet, donc le flux ne dépend pas d'un langage. Un point est plus spécifique :
 
 - Les motifs de verrouillage par défaut visent les fichiers de test Go et JavaScript/TypeScript. Ils ne servent qu'avant l'existence du commit de référence et peuvent être changés (voir plus bas).
-- Le mutation testing n'est lancé que si l'outil est déjà installé : `gremlins` pour Go, Stryker pour le front s'il est configuré. Le plugin ne les installe jamais.
-- `gremlins` passe par `scripts/mutation-go.sh`, package par package, avec un plafond mémoire (scope `systemd-run --user`, sinon `ulimit -v`) et une limite de temps, pour qu'un mutant qui boucle en allouant ne puisse pas épuiser la mémoire de la machine. Réglages : `SPECKIT_MUTATION_MEMORY` (4G), `SPECKIT_MUTATION_WORKERS` (2), `SPECKIT_MUTATION_TIMEOUT_COEFFICIENT` (10), `SPECKIT_MUTATION_PACKAGE_TIMEOUT` (1800 secondes).
 
 ## Règles du verrou
 

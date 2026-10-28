@@ -16,7 +16,7 @@ In spec-driven development with Spec Kit, the agent that implements a feature al
 
 1. **`/speckit-tests`**: a skeleton of the planned interfaces is created first, so that the tests compile. Then an isolated subagent (`test-writer`) reads only the spec, writes the acceptance tests before implementation, and proves they fail at runtime. It also flags contradictions with the other features' specs. The tests are committed, and that commit becomes the reference.
 2. **A lock on the tests**: during `/speckit-implement`, a `PreToolUse` hook prevents the agent from modifying those tests. It has to change the code, not the target. If a locked test is itself broken, `/speckit-fix-test` has the `test-writer` repair it and records the change as an amendment, without stopping the run.
-3. **`/speckit-verify`**: mechanical checks first (no change to the tests since the reference commit other than amendments, full test suite, mutation testing if a tool is installed), then a `spec-reviewer` subagent that never saw the implementation reasoning judges each acceptance criterion as OK, PARTIAL or MISSING. Gaps are appended to `tasks.md` as remediation tasks.
+3. **`/speckit-verify`**: mechanical checks first (no change to the tests since the reference commit other than amendments, full test suite), then a `spec-reviewer` subagent that never saw the implementation reasoning judges each acceptance criterion as OK, PARTIAL or MISSING. Gaps are appended to `tasks.md` as remediation tasks.
 
 ## Workflow
 
@@ -81,11 +81,9 @@ To limit the plugin to some projects, enable it at project level rather than use
 
 ### Stacks
 
-The commands let the agent detect and run your project's test commands, so the workflow is not tied to a language. Two parts are more specific:
+The commands let the agent detect and run your project's test commands, so the workflow is not tied to a language. One part is more specific:
 
 - The default lock patterns target Go and JavaScript/TypeScript test files. They only apply before the reference commit exists, and can be changed (see below).
-- Mutation testing runs only if the tool is already installed: `gremlins` for Go, Stryker for the frontend if configured. The plugin never installs them.
-- `gremlins` runs through `scripts/mutation-go.sh`, package by package, under a memory cap (a `systemd-run --user` scope, otherwise `ulimit -v`) and a time limit, so that a mutant that loops while allocating cannot exhaust the machine's memory. Settings: `SPECKIT_MUTATION_MEMORY` (4G), `SPECKIT_MUTATION_WORKERS` (2), `SPECKIT_MUTATION_TIMEOUT_COEFFICIENT` (10), `SPECKIT_MUTATION_PACKAGE_TIMEOUT` (1800 seconds).
 
 ## Lock rules
 

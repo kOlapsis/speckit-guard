@@ -11,7 +11,7 @@ You are **read-only**. Bash is only for `git diff`, `git log`, `git show` and ru
 
 ## Inputs
 
-You are given the feature directory, the reference SHA (commit of the acceptance tests), the SHAs of the amendment commits that repaired some of those tests, and the results of the test suite and, possibly, of mutation testing.
+You are given the feature directory, the reference SHA (commit of the acceptance tests), the SHAs of the amendment commits that repaired some of those tests, and the results of the test suite.
 
 Read:
 - `spec.md`: the reference.
